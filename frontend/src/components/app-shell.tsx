@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowUpRight, Building2, ChevronDown, Command, LayoutDashboard, LogOut, Menu, Moon, Search, Sun, UsersRound, X } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { initials } from "@/lib/utils";
@@ -19,8 +19,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [dark, setDark] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
+  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("referral-theme");
@@ -29,7 +31,16 @@ export function AppShell({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle("dark", isDark);
   }, []);
   useEffect(() => { if (!loading && !user) router.replace("/login"); }, [loading, user, router]);
-  useEffect(() => { setMenuOpen(false); }, [pathname]);
+  useEffect(() => { setMenuOpen(false); setProfileOpen(false); }, [pathname]);
+  useEffect(() => {
+    function closeOnOutsideClick(event: PointerEvent) {
+      if (event.target instanceof Node && !profileRef.current?.contains(event.target)) setProfileOpen(false);
+    }
+    function closeOnEscape(event: KeyboardEvent) { if (event.key === "Escape") setProfileOpen(false); }
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => { document.removeEventListener("pointerdown", closeOnOutsideClick); document.removeEventListener("keydown", closeOnEscape); };
+  }, []);
 
   function toggleTheme() {
     const next = !dark;
@@ -65,11 +76,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
         <div className="mt-auto border-t border-white/10 p-4">
-          <button onClick={() => void logout()} className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-white/7">
+          <div className="flex w-full items-center gap-3 rounded-xl p-2 text-left">
             <div className="grid size-9 shrink-0 place-items-center rounded-full bg-[#cbe9d5] text-xs font-bold text-[#153b32]">{initials(user.fullName || user.email)}</div>
             <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold">{user.fullName || user.email}</span><span className="block truncate text-[10px] text-emerald-100/55">{user.email}</span></span>
-            <LogOut size={15} className="text-emerald-100/60" />
-          </button>
+            <button onClick={() => void logout()} aria-label="Sign out" title="Sign out" className="grid size-8 shrink-0 place-items-center rounded-lg text-emerald-100/60 hover:bg-white/10 hover:text-white"><LogOut size={15} /></button>
+          </div>
         </div>
       </aside>
       <div className="min-h-screen lg:pl-[252px]">
@@ -82,7 +93,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-2">
             <div className="relative hidden w-[250px] sm:block"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input aria-label="Search contacts and companies" placeholder="Search contacts & companies" value={globalSearch} onChange={(e) => setGlobalSearch(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && globalSearch.trim()) router.push(`/search?q=${encodeURIComponent(globalSearch.trim())}`); }} className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs outline-none placeholder:text-slate-400 focus:border-emerald-700 dark:border-slate-800 dark:bg-slate-900" /></div>
             <Button variant="ghost" size="icon" aria-label={dark ? "Switch to light theme" : "Switch to dark theme"} onClick={toggleTheme}>{dark ? <Sun size={17} /> : <Moon size={17} />}</Button>
-            <button onClick={() => void logout()} className="hidden items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 sm:flex"><span className="grid size-6 place-items-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100">{initials(user.fullName || user.email)}</span><span className="max-w-[100px] truncate">{user.fullName.split(" ")[0] || user.email}</span><ChevronDown size={13} /></button>
+            <div ref={profileRef} className="relative hidden sm:block">
+              <button type="button" aria-label="Open profile menu" aria-haspopup="menu" aria-expanded={profileOpen} onClick={() => setProfileOpen((open) => !open)} className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"><span className="grid size-6 place-items-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100">{initials(user.fullName || user.email)}</span><span className="max-w-[100px] truncate">{user.fullName.split(" ")[0] || user.email}</span><ChevronDown size={13} className={`transition-transform ${profileOpen ? "rotate-180" : ""}`} /></button>
+              {profileOpen && <div role="menu" aria-label="Profile menu" className="absolute right-0 top-full z-30 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900"><div className="border-b border-slate-100 px-3 py-2.5 dark:border-slate-800"><p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{user.fullName || "Your account"}</p><p className="mt-0.5 truncate text-xs text-slate-500">{user.email}</p></div><button type="button" role="menuitem" onClick={() => void logout()} className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-rose-300"><LogOut size={15} /> Sign out</button></div>}
+            </div>
           </div>
         </header>
         <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-7 lg:px-9 lg:py-9">{children}</main>
