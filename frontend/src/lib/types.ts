@@ -84,6 +84,11 @@ export type OpportunityQueue = {
   suggestedCompanies: Array<{ id: string; name: string; priority: number; dreamCompany: boolean; applicationStatus: string }>;
 };
 export type Resume = { id: string; label: string; fileName: string };
+export type ResumeIntelligence = { resumeId: string; resumeLabel: string; extractedText: string; skills: string[]; projects: Array<{id:string;name:string;description:string;technologies:string[]}>; experience: Array<{id:string;company:string;role:string;description:string;duration:string|null}> };
+export type ResumeDocumentInfo = { id:string; fileName:string; fileType:string; fileSize:number; createdAt:string };
+export type ResumeUploadResult = { resume: Resume; document: ResumeDocumentInfo; intelligence: ResumeIntelligence };
+export type JobAnalysisResult = { analysisId:string; jobId:string; jobTitle:string; matchScore:number; matchingSkills:string[]; missingSkills:string[]; experienceMatch:number; strengths:string[]; weaknesses:string[]; recommendations:string[]; recommendedResumeId:string|null; recommendedResume:string|null; resumeReason:string; suggestions:Array<{id:string;resumeId:string;jobId:string;suggestion:string;status:"PENDING"|"APPLIED"|"IGNORED"}>; optionalAiInsight:string };
+export type InterviewPreparation = { id:string;jobId:string;resumeId:string|null;technicalTopics:string[];systemDesignTopics:string[];possibleQuestions:string[];notes:string };
 export type GeneratedMessage = {
   id: string; contactId: string; contactName: string; linkedinUrl: string | null; companyId: string | null;
   companyName: string | null; resumeId: string | null; resumeLabel: string | null; resumeReason: string | null;

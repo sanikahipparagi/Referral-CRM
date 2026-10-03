@@ -13,7 +13,9 @@ Referral CRM is a self-hosted job-search workspace for organizing companies, con
 - **Today's Opportunities:** filter contacts by company, role, status, location, and priority; review recommendations and suggested companies.
 - **Outreach review:** generate LinkedIn, short, email, and follow-up drafts; edit/version, approve, copy, open a profile, and record a message after manually sending it.
 - **Recommendation rules:** editable per-user keywords and weights for contact scores, with a short explanation for each recommendation.
-- **Resumes and profile:** keep resume metadata and manually maintained resume skills; recommend a resume using skill coverage, with label/filename as a fallback.
+- **Resume intelligence:** upload multiple PDF resumes, keep files in private local storage, extract selectable text and catalog skills, and review heuristically detected projects and experience.
+- **Job analysis:** compare saved resumes with a job's required skills, show evidence, missing skills, match score, resume recommendation, and truthful improvement suggestions. Results are saved for later review.
+- **Interview preparation:** create job-specific technical topics, system design topics, and practice questions; save personal notes.
 - **Prompts:** edit and version database-backed prompt templates in the UI.
 - **Networking analytics:** response, referral, interview, and offer rates; reply time; top companies and roles; resume, message, and contact-type performance.
 - **CRM records:** outreach history, interviews, and global search.
@@ -24,11 +26,12 @@ Referral CRM is a self-hosted job-search workspace for organizing companies, con
 - **Backend:** Spring Boot 3.5, Java 25, Gradle, PostgreSQL, Spring Data JPA/Hibernate, Flyway, REST APIs, OpenAPI, and JWT authentication.
 - **Frontend:** Next.js App Router, TypeScript, Tailwind CSS 4, and ShadCN-inspired UI primitives.
 - **Persistence:** UUID identifiers, owner-scoped records, audit timestamps, soft deletes, validation, and pagination/sorting on list endpoints. Schema changes are additive Flyway migrations; Hibernate does not manage production schema changes.
-- **Service boundaries:** `JobService`, `JobMatchingService`, `OpportunityRankingService`, and `ResumeSkillService` join the existing assistant services to keep business rules outside controllers.
+- **Service boundaries:** `ResumeParserService` extracts text, `ResumeProfileService` structures skills/projects/experience, `ResumeJobMatchService` compares owned resumes to jobs, and `JobAnalysisService`, `ResumeImprovementService`, and `InterviewPreparationService` persist reviewable analysis and preparation. Controllers remain thin.
 - **Opportunity score:** skill match 40%, company priority 20%, role fit 20%, location 10%, and experience fit 10%. Company scoring reuses the existing 1–5 priority scale and `dreamCompany` flag as the target-company marker.
 - **Provider extension points:** `LLMProvider`, `JobProvider`, and `ContactProvider` are interfaces only. No provider implementation, LinkedIn integration, or contact scraping is included.
 - **Manual-send workflow:** a draft is stored independently; the app records an outreach event only after the user approves the draft and explicitly marks it sent. The backend has no message-send operation.
 - **Deployment:** Docker Compose runs PostgreSQL, the API, and the web application.
+- **Resume storage:** PDF binaries use a mounted `resume_files` Docker volume (or `RESUME_STORAGE_PATH` locally); metadata and extracted text are stored in PostgreSQL. Upload size defaults to 10 MB and page count to 200.
 
 ## Requirements
 
@@ -99,14 +102,17 @@ Open [http://localhost:3000](http://localhost:3000). The web server proxies API 
 | `APP_FOLLOW_UP_DAYS` | API | Days without a reply before follow-up is due; defaults to `7`. |
 | `CORS_ORIGINS` | API | Allowed browser origins; defaults to `http://localhost:3000`. |
 | `CRM_API_URL` | Frontend | API base URL used by the Next.js proxy; defaults to `http://localhost:8080/api/v1`. |
+| `RESUME_STORAGE_PATH` | API | Private directory for resume PDFs; defaults to `./data/resumes`. Docker uses `/app/storage/resumes` on the `resume_files` volume. |
+| `RESUME_MAX_FILE_SIZE` | API | Multipart upload/request limit; defaults to `10MB`. |
+| `RESUME_MAX_PAGES` | API | Maximum parsed PDF page count; defaults to `200` (bounded to 1–1000). |
 
 For a production deployment, use HTTPS, strong secrets, restricted network access, regular database backups, and monitoring. Do not expose PostgreSQL publicly.
 
 ## Assistant behavior and current scope
 
-The recommendation engine scores contacts from editable database rules, such as role and skills keywords. Resume recommendations compare the requested role with saved resume labels and filenames; resume file upload and document-content analysis are not implemented. Prompt templates are versioned in the database and can be edited from the app.
+The recommendation engine scores contacts from editable database rules, such as role and skills keywords. Resume recommendations for job analysis compare required job skills against extracted and saved resume skills, project technologies, and experience evidence. Catalog/heading parsing is heuristic and should be reviewed by the user; it is not a substitute for checking the source resume. Only text-based PDFs are supported: encrypted, damaged, and image-only/scanned PDFs are rejected (OCR is not implemented). The current catalog covers common technology and domain terms rather than every skill.
 
-There is no configured LLM provider in this phase. Draft text is rendered from the saved prompt templates and the user's profile, contact, company, role, and resume metadata. Provider interfaces are extension points only; they do not make network calls. Do not treat the current template renderer as model-generated content.
+There is no configured LLM provider in this phase. Job matching, profile extraction, improvement suggestions, and interview-preparation content use deterministic local rules. `LLMProvider`, `OpenAIProvider`, and `OllamaProvider` are extension interfaces only; no external model calls or credentials are configured. The analysis prompt treats resume/job text as data and prohibits invented experience, skills, metrics, or credentials when a provider is added later. Review all extracted profile details and suggestions before using them.
 
 ## REST API
 
@@ -123,6 +129,14 @@ All API routes are under `/api/v1`. Authenticated CRM data is scoped to the sign
 | `/jobs/{id}/match` | Recalculate skill/profile match, return matched/missing skills and a recommended resume, and save the match score. |
 | `/jobs/top?limit=10` | Return top ranked jobs with score factors and resume recommendations. |
 | `/resumes/{resumeId}/skills` | List or replace manually maintained resume skills. |
+| `/resumes/upload` | Upload a PDF with multipart fields `label` and `file`; returns resume/document metadata and the extracted profile. |
+| `/resumes/{resumeId}/documents` | List uploaded PDF versions. |
+| `/resumes/{resumeId}/intelligence` | View detected skills, projects, experience, and the latest extracted text. |
+| `/resumes/{resumeId}/documents/{documentId}/text` | Read text extracted from a specific resume PDF. |
+| `/resumes/{resumeId}/documents/{documentId}/download` | Download the stored PDF. |
+| `/jobs/{jobId}/analysis` | `POST` to analyze saved resumes for the job and persist a result; `GET` to list analysis history. |
+| `/jobs/{jobId}/suggestions?resumeId=...` | List stored job-specific suggestions; `PATCH /{suggestionId}` with `PENDING`, `APPLIED`, or `IGNORED` to update review status. |
+| `/jobs/{jobId}/interview-prep` | `POST` to generate preparation topics/questions; `GET` for saved history; `PUT /{noteId}` to save notes. |
 | `/dashboard` | Dashboard counts and summaries. |
 | `/assistant/opportunities` | Filtered opportunities and recommendations. |
 | `/assistant/messages/generate` | Generate and save message drafts. |
@@ -152,4 +166,4 @@ npm run build
 
 ## Project status
 
-Phase 1 established the database, authentication, and CRM APIs. Phase 2 added the dashboard and web application. Phase 3 added the networking assistant, opportunity and review queues, recommendations, versioned prompts, and analytics. Phase 4 adds job tracking, deterministic skill/profile matching, resume skill records, weighted opportunity ranking, and job dashboard statistics. Job listings and profile/resume skills are entered manually; job imports and provider integrations are interfaces only. Resume binary uploads, document-content parsing, external job discovery, job-description analysis by an LLM, export to Excel/CSV/PDF, a dedicated interview UI, and drag-and-drop Kanban remain future work. Automated LinkedIn activity, scraping, browser automation, and auto applications are explicitly out of scope.
+Phase 1 established the database, authentication, and CRM APIs. Phase 2 added the dashboard and web application. Phase 3 added the networking assistant, opportunity and review queues, recommendations, versioned prompts, and analytics. Phase 4 added job tracking and deterministic matching/ranking. Phase 5 adds PDF resume storage and text extraction, structured resume intelligence, job-specific analysis and improvement suggestions, interview preparation, and review screens. Job listings are still entered manually; job imports and LLM/job/contact providers are interfaces only. OCR, external job discovery, configured AI providers, export to Excel/CSV/PDF, and drag-and-drop Kanban remain future work. Automated LinkedIn activity, scraping, browser automation, and auto applications are explicitly out of scope.

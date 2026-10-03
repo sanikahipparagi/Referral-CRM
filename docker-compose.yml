@@ -21,6 +21,10 @@ services:
       JWT_SECRET: ${JWT_SECRET:-local-only-change-this-secret-to-a-random-32-byte-minimum-value}
       APP_FOLLOW_UP_DAYS: ${APP_FOLLOW_UP_DAYS:-7}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      RESUME_STORAGE_PATH: /app/storage/resumes
+      RESUME_MAX_FILE_SIZE: ${RESUME_MAX_FILE_SIZE:-10MB}
+      RESUME_MAX_PAGES: ${RESUME_MAX_PAGES:-200}
+    volumes: ["resume_files:/app/storage/resumes"]
     ports: ["8080:8080"]
     depends_on:
       db: { condition: service_healthy }
@@ -36,3 +40,4 @@ services:
       api: { condition: service_started }
 volumes:
   postgres_data:
+  resume_files:

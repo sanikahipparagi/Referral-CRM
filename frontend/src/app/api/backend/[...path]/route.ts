@@ -21,7 +21,10 @@ async function proxy(request: NextRequest, context: Context) {
       cache: "no-store",
     });
     const responseBody = upstream.status === 204 ? null : await upstream.arrayBuffer();
-    return new NextResponse(responseBody, { status: upstream.status, headers: { "Content-Type": upstream.headers.get("content-type") ?? "application/json" } });
+    const responseHeaders = new Headers({ "Content-Type": upstream.headers.get("content-type") ?? "application/json" });
+    const disposition = upstream.headers.get("content-disposition");
+    if (disposition) responseHeaders.set("Content-Disposition", disposition);
+    return new NextResponse(responseBody, { status: upstream.status, headers: responseHeaders });
   } catch {
     return NextResponse.json({ message: "CRM API is unavailable" }, { status: 503 });
   }

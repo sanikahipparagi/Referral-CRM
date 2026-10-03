@@ -9,6 +9,10 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/referral_crm}
     username: ${DB_USERNAME:referral}
     password: ${DB_PASSWORD:referral_local}
+  servlet:
+    multipart:
+      max-file-size: ${RESUME_MAX_FILE_SIZE:10MB}
+      max-request-size: ${RESUME_MAX_FILE_SIZE:10MB}
   jpa:
     open-in-view: false
     hibernate:
@@ -30,6 +34,8 @@ management:
       probes:
         enabled: true
 app:
+  resume-storage-path: ${RESUME_STORAGE_PATH:./data/resumes}
+  resume-max-pages: ${RESUME_MAX_PAGES:200}
   default-time-zone: ${APP_TIME_ZONE:Asia/Kolkata}
   follow-up-days: ${APP_FOLLOW_UP_DAYS:7}
   jwt:

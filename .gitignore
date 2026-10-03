@@ -1,6 +1,7 @@
 .gradle/
 build/
 .env
+data/resumes/
 .idea/
 *.iml
 **/.DS_Store
