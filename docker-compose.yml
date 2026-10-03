@@ -23,5 +23,15 @@ services:
     ports: ["8080:8080"]
     depends_on:
       db: { condition: service_healthy }
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      CRM_API_URL: http://api:8080/api/v1
+      NODE_ENV: production
+    ports: ["3000:3000"]
+    depends_on:
+      api: { condition: service_started }
 volumes:
   postgres_data:

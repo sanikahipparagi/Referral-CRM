@@ -4,3 +4,7 @@ build/
 .idea/
 *.iml
 **/.DS_Store
+frontend/node_modules/
+frontend/.next/
+frontend/coverage/
+frontend/*.tsbuildinfo

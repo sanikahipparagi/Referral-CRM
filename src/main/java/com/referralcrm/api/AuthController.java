@@ -9,7 +9,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +30,11 @@ public class AuthController {
     @PostMapping("/login") public Map<String,Object> login(@Valid @RequestBody LoginRequest r) {
         AppUser u=users.findByEmailAndDeletedAtIsNull(r.email().trim().toLowerCase(Locale.ROOT)).orElseThrow(() -> new BadCredentialsException("Email or password is incorrect"));
         if(!encoder.matches(r.password(),u.getPasswordHash())) throw new BadCredentialsException("Invalid credentials"); return token(u);
+    }
+    @GetMapping("/me") public Map<String,Object> me(Authentication authentication) {
+        UUID userId=(UUID)authentication.getPrincipal();
+        AppUser u=users.findById(userId).filter(x->x.getDeletedAt()==null).orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"Session is no longer valid"));
+        return Map.of("id",u.getId(),"email",u.getEmail(),"fullName",u.getFullName());
     }
     private Map<String,Object> token(AppUser u) { return Map.of("accessToken",jwt.issue(u.getId(),u.getEmail()),"tokenType","Bearer","expiresInSeconds",jwt.expirationSeconds(),"user",Map.of("id",u.getId(),"email",u.getEmail(),"fullName",u.getFullName())); }
 }

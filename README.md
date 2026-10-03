@@ -1,61 +1,72 @@
-# Referral CRM — Phase 1 API
+# Referral CRM
 
-A self-hosted foundation for managing job-search referral outreach. This phase provides PostgreSQL persistence, JWT local authentication, and owner-scoped CRUD for companies, contacts, resumes, manually recorded outreach, and interviews. The backend only prepares and stores outreach records. It has no LinkedIn integration, message-sending capability, or scraping behavior.
+Referral CRM is a self-hosted job-search workspace for organizing companies, referral contacts, and manually recorded outreach. It prepares and tracks outreach; it does not send LinkedIn messages, automate LinkedIn actions, or scrape LinkedIn.
 
 ## Architecture
 
-- Spring Boot 3.5 / Java 25 REST API with DTO validation, owner-scoped access, and a centralized error response.
-- PostgreSQL schema managed by Flyway; Hibernate runs in `validate` mode and never creates production tables.
-- UUID primary keys and audit timestamps on every entity. Delete endpoints set `deleted_at` (soft delete).
-- Stateless JWT authentication. Passwords are stored as BCrypt hashes. All CRM endpoints are scoped to the authenticated account.
-- OpenAPI UI at `/swagger-ui/index.html`; liveness/readiness health at `/actuator/health`.
+- **API:** Spring Boot 3.5, Java 25, Gradle, PostgreSQL, JPA/Hibernate, Flyway, REST, OpenAPI, and JWT authentication.
+- **Web:** Next.js App Router, TypeScript, Tailwind CSS 4, and accessible ShadCN-inspired UI primitives.
+- **Authentication:** The browser uses a Next.js backend-for-frontend proxy. The API JWT stays in an HttpOnly, SameSite=Lax cookie and is not exposed to client-side JavaScript or local storage.
+- **Data:** UUIDs, owner-scoped records, audit timestamps, soft deletes, validation, and paginated/sortable list APIs.
+- **Deployment:** Docker Compose runs PostgreSQL, the API, and the web app.
 
-Companies, contacts, resumes, outreach events, and interviews are normalized into separate tables. Outreach stores a snapshot of the message version/text and references the resume used, so later edits do not change the historical sent record. Company and resume links are validated against the authenticated user.
+## Run the application with Docker
 
-## Run with Docker
-
-1. Copy `.env.example` to `.env` and set a unique database password and a random JWT secret of at least 32 bytes.
+1. Copy `.env.example` to `.env`. Set a unique database password and a random `JWT_SECRET` of at least 32 characters.
 2. Run `docker compose up --build`.
-3. Open `http://localhost:8080/swagger-ui/index.html`.
+3. Open the app at `http://localhost:3000`. The API and Swagger UI are at `http://localhost:8080` and `http://localhost:8080/swagger-ui/index.html`.
 
-For local development, use Java 25 and Gradle 9.1 or newer, then run `gradle bootRun`. Start PostgreSQL first and set `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, and `JWT_SECRET` as needed. The compiler targets Java 25. Gradle 9.1 or newer is needed to run Gradle on Java 25; see the [Gradle Java compatibility matrix](https://docs.gradle.org/current/userguide/compatibility.html).
+## Run locally
 
-## Authentication
+Install Java 25, Gradle 9.1+, PostgreSQL, Node.js 20.9+, and npm. Start PostgreSQL and create a database/user, then run the API from the repository root:
 
-`POST /api/v1/auth/register`
-
-```json
-{"fullName":"Alex Example","email":"alex@example.com","password":"a-long-password-12"}
+```sh
+export DB_URL=jdbc:postgresql://localhost:5432/referral_crm
+export DB_USERNAME=referral
+export DB_PASSWORD=your-local-password
+export JWT_SECRET='use-a-random-secret-with-at-least-32-characters'
+gradle bootRun
 ```
 
-`POST /api/v1/auth/login` accepts `email` and `password`. Both return `accessToken`, `tokenType`, `expiresInSeconds`, and a basic user object. Send subsequent requests using `Authorization: Bearer <accessToken>`.
+In another terminal, run the web application:
 
-Passwords must be 12–72 characters. Store the token securely in the eventual browser client; production deployment should use HTTPS and a managed secret store.
+```sh
+cd frontend
+npm ci
+npm run dev
+```
 
-## CRUD routes
+Open `http://localhost:3000`. The web app proxies API calls to `http://localhost:8080/api/v1` by default. Set `CRM_API_URL` to override that URL. For production, configure `CRM_API_URL` to the API base URL, serve both apps over HTTPS, use strong secrets, and configure backups and monitoring.
 
-All resources support `POST`, paginated `GET`, `GET /{id}`, `PUT /{id}`, and soft-delete `DELETE /{id}`:
+## Current features (Phases 1–2)
 
-- `/api/v1/companies`
-- `/api/v1/contacts` (supports `search` and `status` query parameters)
-- `/api/v1/resumes`
-- `/api/v1/outreach`
-- `/api/v1/interviews`
+- Local account registration/login with JWT, BCrypt password hashing, and authenticated session handling.
+- Dashboard counts, response/referral rates, company activity, and a seven-day follow-up queue.
+- Company and contact CRUD, search/filtering, pagination, status tracking, and contact/company linking.
+- Global search across contacts, companies, notes, and saved outreach messages.
+- Responsive layout, dark mode, and manual outreach guidance.
+- Company, contact, resume metadata, outreach history, and interview CRUD REST APIs.
 
-List requests accept `page` (zero-based), `size` (1–100), `sort`, and `direction` (`asc` or `desc`). Responses use Spring's `Page` shape. `search` on companies and contacts searches names and notes. Resume metadata is supported in Phase 1; binary upload storage is intentionally a later phase, so `storageKey` must refer to storage provisioned by the deployment.
+The follow-up queue highlights contacts that have not replied seven days after their latest saved outreach. A reply status removes them from the queue. Outreach history is created only when the user records that they manually sent a message.
 
-Contact statuses: `NOT_CONTACTED`, `MESSAGE_READY`, `CONTACTED`, `REPLIED`, `REFERRED`, `INTERVIEW`, `REJECTED`, `NO_RESPONSE`.
+## REST API
 
-Outreach channels are stored as caller-provided strings (recommended: `LINKEDIN`, `EMAIL`, `REFERRAL_PORTAL`, `OTHER`). Creating outreach means the user has manually sent it and recorded it; the API does not transmit the message.
+All routes are under `/api/v1`. Authentication routes are `/auth/register`, `/auth/login`, and `/auth/me`. CRM resources support create, paginated list, read, update, and soft-delete operations:
 
-## Phase plan
+- `/companies`
+- `/contacts` (supports `search` and `status` filters)
+- `/resumes` (metadata only)
+- `/outreach` (manually recorded sent messages)
+- `/interviews`
+- `/dashboard`
+- `/search?q=...` (contacts, companies, notes, and outreach message text)
 
-1. **Foundation (this deliverable):** schema, auth, core REST CRUD.
-2. Frontend dashboard, contact/company workflows, responsive layout and dark mode.
-3. Resume upload/storage, message drafts and AI-assisted personalization (manual copy/send only).
-4. Follow-up queue, analytics, interview workflows, global search, export and Kanban.
-5. Operational hardening: integration interfaces, expanded tests, deployment configuration, backup/monitoring guidance.
+List APIs accept `page` (zero-based), `size` (1–100), `sort`, and `direction` (`asc` or `desc`). Swagger UI is available at `/swagger-ui/index.html`; health checks are at `/actuator/health`.
 
-## Current implementation limits
+Contact statuses: `NOT_CONTACTED`, `MESSAGE_READY`, `CONTACTED`, `REPLIED`, `REFERRED`, `INTERVIEW`, `REJECTED`, and `NO_RESPONSE`. Outreach channels are caller-provided strings such as `LINKEDIN`, `EMAIL`, `REFERRAL_PORTAL`, or `OTHER`.
 
-This is the runnable API foundation, not yet the complete feature set. Dashboard aggregates, AI/OpenAI integration, binary upload, exports, follow-up scheduling, frontend, and expanded automated tests are reserved for subsequent phases. Review `JWT_SECRET`, database credentials, CORS origins, HTTPS, rate limits, backups, and storage before public deployment.
+## Development status
+
+Phase 1 provides the database foundation, authentication, and core CRUD APIs. Phase 2 adds the web app, dashboard, contacts/companies workflows, session proxy, and global search. Resume binary uploads, AI message generation and job-description assistance, export, a dedicated interview UI, drag-and-drop Kanban, and integration interfaces remain for later phases. No LinkedIn messaging or scraping integration is planned.
+
+The API test suite can be run with `gradle test`; the frontend checks use `npm run typecheck` and `npm run build` from `frontend/`.

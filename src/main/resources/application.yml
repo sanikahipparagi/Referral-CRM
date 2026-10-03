@@ -30,6 +30,7 @@ management:
       probes:
         enabled: true
 app:
+  default-time-zone: ${APP_TIME_ZONE:Asia/Kolkata}
   jwt:
     secret: ${JWT_SECRET:local-only-change-this-secret-to-a-random-32-byte-minimum-value}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:720}
