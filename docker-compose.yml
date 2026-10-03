@@ -19,6 +19,7 @@ services:
       DB_USERNAME: referral
       DB_PASSWORD: ${DB_PASSWORD:-referral_local}
       JWT_SECRET: ${JWT_SECRET:-local-only-change-this-secret-to-a-random-32-byte-minimum-value}
+      APP_FOLLOW_UP_DAYS: ${APP_FOLLOW_UP_DAYS:-7}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
     ports: ["8080:8080"]
     depends_on:

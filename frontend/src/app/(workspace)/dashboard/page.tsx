@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, ArrowUpRight, Building2, CalendarClock, CheckCircle2, MessageCircle, RefreshCw, Send, Sparkles, UsersRound } from "lucide-react";
 import { api, errorMessage } from "@/lib/api";
-import type { DashboardData } from "@/lib/types";
+import type { DashboardData, OpportunityQueue } from "@/lib/types";
 import { displayDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,7 @@ function DashboardSkeleton() {
 export default function DashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
+  const [opportunityQueue, setOpportunityQueue] = useState<OpportunityQueue | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   async function load() {
@@ -32,6 +33,7 @@ export default function DashboardPage() {
     try { setData(await api<DashboardData>("dashboard")); } catch (cause) { setError(errorMessage(cause)); } finally { setLoading(false); }
   }
   useEffect(() => { void load(); }, []);
+  useEffect(() => { api<OpportunityQueue>("assistant/opportunities").then(setOpportunityQueue).catch(() => setOpportunityQueue(null)); }, []);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = user?.fullName?.trim().split(/\s+/)[0] ?? "";
@@ -51,9 +53,11 @@ export default function DashboardPage() {
     <section className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4" aria-label="Outreach summary">
       <MetricCard label="Today’s outreach" value={data.todayOutreach} caption={data.todayOutreach === 1 ? "message recorded today" : "messages recorded today"} icon={Send} tone="bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" />
       <MetricCard label="People contacted" value={data.peopleContacted} caption="unique people you’ve reached" icon={UsersRound} tone="bg-sky-50 text-sky-800 dark:bg-sky-950 dark:text-sky-300" />
-      <MetricCard label="Pending follow-ups" value={data.pendingFollowUps} caption="no reply after 7 days" icon={CalendarClock} tone="bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300" />
+      <MetricCard label="Pending follow-ups" value={data.pendingFollowUps} caption={`no reply after ${data.followUpDays} days`} icon={CalendarClock} tone="bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300" />
       <MetricCard label="Replies" value={data.replies} caption={`${data.responseRate}% response rate`} icon={MessageCircle} tone="bg-violet-50 text-violet-800 dark:bg-violet-950 dark:text-violet-300" />
     </section>
+
+    <Card><CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"><Sparkles size={20}/></span><div className="min-w-0 flex-1"><p className="text-sm font-semibold">Today’s Opportunities</p><p className="mt-1 text-xs text-slate-500">{opportunityQueue ? `${opportunityQueue.suggestedContacts.length} suggested contacts · ${opportunityQueue.contacts.filter(c=>c.needsFollowUp).length} follow-ups to review · ${opportunityQueue.suggestedCompanies.length} companies to explore` : "Review your saved contacts, follow-ups, and company priorities."}</p></div><Link href="/opportunities" className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Open opportunities <ArrowRight size={14}/></Link></CardContent></Card>
 
     <section className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
       <Card>

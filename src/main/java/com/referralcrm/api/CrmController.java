@@ -69,7 +69,11 @@ public class CrmController {
     private void contactFields(Contact x,ContactDto d,UUID user) {
         if(d.companyId()!=null) owned(companies.findById(d.companyId()),user);
         x.setName(d.name().trim()); x.setCompanyId(d.companyId()); x.setLinkedinUrl(d.linkedinUrl()); x.setDesignation(d.designation()); x.setLocation(d.location()); x.setEmail(d.email()); x.setSource(d.source());
-        x.setDateAdded(d.dateAdded()==null?LocalDate.now():d.dateAdded()); x.setNotes(d.notes()); x.setStatus(d.status()==null?ContactStatus.NOT_CONTACTED:d.status());
+        x.setDateAdded(d.dateAdded()==null?LocalDate.now():d.dateAdded()); x.setNotes(d.notes());
+        ContactStatus nextStatus=d.status()==null?ContactStatus.NOT_CONTACTED:d.status();
+        if((nextStatus==ContactStatus.REPLIED || nextStatus==ContactStatus.REFERRED || nextStatus==ContactStatus.INTERVIEW) && x.getRepliedAt()==null) x.setRepliedAt(OffsetDateTime.now());
+        if(nextStatus!=ContactStatus.REPLIED && nextStatus!=ContactStatus.REFERRED && nextStatus!=ContactStatus.INTERVIEW) x.setRepliedAt(null);
+        x.setStatus(nextStatus);
     }
 
     @PostMapping("/resumes") @ResponseStatus(HttpStatus.CREATED) public Resume createResume(Authentication a,@Valid @RequestBody ResumeDto d) { Resume x=new Resume(); x.setUserId(uid(a)); resumeFields(x,d); return resumes.save(x); }

@@ -11,6 +11,7 @@ public class Outreach extends AuditedEntity {
     @Column(name="user_id", nullable=false) private UUID userId;
     @Column(name="contact_id", nullable=false) private UUID contactId;
     @Column(name="resume_id") private UUID resumeId;
+    @Column(name="generated_message_id") private UUID generatedMessageId;
     @Column(nullable=false, length=32) private String channel;
     @Column(name="message_version", nullable=false, length=32) private String messageVersion;
     @Column(name="message_text", nullable=false, columnDefinition="text") private String messageText;

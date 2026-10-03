@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import java.util.UUID;
 public interface CompanyRepository extends JpaRepository<Company, UUID>, JpaSpecificationExecutor<Company> {
  interface CompanyStats { UUID getId(); String getName(); long getContactCount(); long getOutreachCount(); long getReferralCount(); }
  @Query(value="""
@@ -18,4 +19,5 @@ public interface CompanyRepository extends JpaRepository<Company, UUID>, JpaSpec
    GROUP BY co.id, co.name ORDER BY "outreachCount" DESC, "contactCount" DESC, co.name ASC LIMIT 8
    """, nativeQuery=true)
  List<CompanyStats> dashboardStats(@Param("userId") UUID userId);
+ List<com.referralcrm.domain.Company> findByUserIdAndDeletedAtIsNull(UUID userId);
 }

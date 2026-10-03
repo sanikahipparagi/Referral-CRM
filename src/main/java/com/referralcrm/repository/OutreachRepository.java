@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 public interface OutreachRepository extends JpaRepository<Outreach, UUID>, JpaSpecificationExecutor<Outreach> {
+ List<Outreach> findByUserIdAndDeletedAtIsNull(UUID userId);
  interface SearchRecord { String getKind(); UUID getId(); String getTitle(); String getSubtitle(); String getSnippet(); }
  @Query(value="""
    SELECT * FROM (
@@ -25,6 +26,10 @@ public interface OutreachRepository extends JpaRepository<Outreach, UUID>, JpaSp
      SELECT 'MESSAGE', o.id, c.name || ' · ' || o.message_version, o.channel, o.message_text
      FROM outreach o JOIN contacts c ON c.id=o.contact_id AND c.deleted_at IS NULL
      WHERE o.user_id=:userId AND o.deleted_at IS NULL AND o.message_text ILIKE '%' || :term || '%'
+     UNION ALL
+     SELECT 'MESSAGE', gm.id, c.name || ' · ' || gm.variant || ' v' || gm.version, gm.status, gm.message_text
+     FROM generated_messages gm JOIN contacts c ON c.id=gm.contact_id AND c.deleted_at IS NULL
+     WHERE gm.user_id=:userId AND gm.deleted_at IS NULL AND gm.message_text ILIKE '%' || :term || '%'
    ) results ORDER BY kind, title LIMIT 60
    """, nativeQuery=true)
  List<SearchRecord> searchAll(@Param("userId") UUID userId, @Param("term") String term);

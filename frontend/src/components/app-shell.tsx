@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, Building2, ChevronDown, Command, LayoutDashboard, LogOut, Menu, Moon, Search, Sun, UsersRound, X } from "lucide-react";
+import { ArrowUpRight, BarChart3, Building2, ChevronDown, Command, FileText, Inbox, LayoutDashboard, LogOut, Menu, Moon, Search, Sun, UsersRound, WandSparkles, X } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { initials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,10 @@ const navigation = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/contacts", label: "Contacts", icon: UsersRound },
   { href: "/companies", label: "Companies", icon: Building2 },
+  { href: "/opportunities", label: "Opportunities", icon: WandSparkles },
+  { href: "/review", label: "Review queue", icon: Inbox },
+  { href: "/networking-analytics", label: "Networking analytics", icon: BarChart3 },
+  { href: "/prompts", label: "Prompts & profile", icon: FileText },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -87,7 +91,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/85 sm:px-7 lg:px-9">
           <div className="flex min-w-0 items-center gap-3">
             <Button variant="ghost" size="icon" aria-label="Open navigation" onClick={() => setMenuOpen(true)} className="lg:hidden"><Menu size={19} /></Button>
-            <div className="hidden items-center gap-2 text-xs text-slate-400 sm:flex"><span>Workspace</span><span>/</span><span className="font-medium text-slate-600 dark:text-slate-300">{navigation.find((n) => n.href === pathname)?.label ?? "Referral CRM"}</span></div>
+            <div className="hidden items-center gap-2 text-xs text-slate-400 sm:flex"><span>Workspace</span><span>/</span><span className="font-medium text-slate-600 dark:text-slate-300">{navigation.find((n) => n.href === pathname || pathname.startsWith(`${n.href}/`))?.label ?? "Referral CRM"}</span></div>
             <div className="relative w-[min(44vw,300px)] sm:hidden"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} /><input aria-label="Search contacts and companies" placeholder="Search" value={globalSearch} onChange={(e) => setGlobalSearch(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && globalSearch.trim()) router.push(`/search?q=${encodeURIComponent(globalSearch.trim())}`); }} className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs outline-none focus:border-emerald-700 dark:border-slate-800 dark:bg-slate-900" /></div>
           </div>
           <div className="flex items-center gap-2">

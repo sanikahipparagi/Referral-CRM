@@ -2,6 +2,7 @@ package com.referralcrm.domain;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,4 +20,5 @@ public class Contact extends AuditedEntity {
     @Column(name="date_added", nullable=false) private LocalDate dateAdded = LocalDate.now();
     @Column(columnDefinition="text") private String notes;
     @Enumerated(EnumType.STRING) @Column(nullable=false, length=32) private ContactStatus status = ContactStatus.NOT_CONTACTED;
+    @Column(name="replied_at") private OffsetDateTime repliedAt;
 }

@@ -31,6 +31,7 @@ management:
         enabled: true
 app:
   default-time-zone: ${APP_TIME_ZONE:Asia/Kolkata}
+  follow-up-days: ${APP_FOLLOW_UP_DAYS:7}
   jwt:
     secret: ${JWT_SECRET:local-only-change-this-secret-to-a-random-32-byte-minimum-value}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:720}
