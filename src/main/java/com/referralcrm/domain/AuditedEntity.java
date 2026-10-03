@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.Getter;
@@ -20,9 +21,9 @@ public abstract class AuditedEntity {
     @Id @UuidGenerator
     private UUID id;
     @CreatedDate @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
+    private Instant createdAt;
     @LastModifiedDate @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
+    private Instant updatedAt;
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
 }
