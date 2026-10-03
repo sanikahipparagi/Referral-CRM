@@ -7,11 +7,13 @@ Referral CRM is a self-hosted job-search workspace for organizing companies, con
 ## Features
 
 - **Dashboard:** outreach activity, response/referral statistics, company summaries, and follow-ups due today.
+- **Job intelligence:** save job opportunities, required skills, status, priority, salary, source, and career URL; search and filter the job list.
+- **Job matching and ranking:** compare required skills with your saved profile and resume skills, explain missing skills, recommend a resume, and rank roles using the documented weighted score.
 - **Companies and contacts:** owner-scoped records, contact status tracking, filtering, search, and company links.
 - **Today's Opportunities:** filter contacts by company, role, status, location, and priority; review recommendations and suggested companies.
 - **Outreach review:** generate LinkedIn, short, email, and follow-up drafts; edit/version, approve, copy, open a profile, and record a message after manually sending it.
 - **Recommendation rules:** editable per-user keywords and weights for contact scores, with a short explanation for each recommendation.
-- **Resumes and profile:** keep resume metadata and a profile summary; recommend a resume based on its label and filename.
+- **Resumes and profile:** keep resume metadata and manually maintained resume skills; recommend a resume using skill coverage, with label/filename as a fallback.
 - **Prompts:** edit and version database-backed prompt templates in the UI.
 - **Networking analytics:** response, referral, interview, and offer rates; reply time; top companies and roles; resume, message, and contact-type performance.
 - **CRM records:** outreach history, interviews, and global search.
@@ -22,7 +24,8 @@ Referral CRM is a self-hosted job-search workspace for organizing companies, con
 - **Backend:** Spring Boot 3.5, Java 25, Gradle, PostgreSQL, Spring Data JPA/Hibernate, Flyway, REST APIs, OpenAPI, and JWT authentication.
 - **Frontend:** Next.js App Router, TypeScript, Tailwind CSS 4, and ShadCN-inspired UI primitives.
 - **Persistence:** UUID identifiers, owner-scoped records, audit timestamps, soft deletes, validation, and pagination/sorting on list endpoints. Schema changes are additive Flyway migrations; Hibernate does not manage production schema changes.
-- **Service boundaries:** `RecommendationService`, `ResumeRecommendationService`, `MessageGenerationService`, `PromptTemplateService`, `MessageWorkflowService`, `OpportunityService`, and `AnalyticsService` hold assistant logic outside the controllers.
+- **Service boundaries:** `JobService`, `JobMatchingService`, `OpportunityRankingService`, and `ResumeSkillService` join the existing assistant services to keep business rules outside controllers.
+- **Opportunity score:** skill match 40%, company priority 20%, role fit 20%, location 10%, and experience fit 10%. Company scoring reuses the existing 1–5 priority scale and `dreamCompany` flag as the target-company marker.
 - **Provider extension points:** `LLMProvider`, `JobProvider`, and `ContactProvider` are interfaces only. No provider implementation, LinkedIn integration, or contact scraping is included.
 - **Manual-send workflow:** a draft is stored independently; the app records an outreach event only after the user approves the draft and explicitly marks it sent. The backend has no message-send operation.
 - **Deployment:** Docker Compose runs PostgreSQL, the API, and the web application.
@@ -116,6 +119,10 @@ All API routes are under `/api/v1`. Authenticated CRM data is scoped to the sign
 | `/resumes` | Resume metadata CRUD. |
 | `/outreach` | Outreach records, created when the user records a manually sent message. |
 | `/interviews` | Interview CRUD. |
+| `/jobs` | Job CRUD with pagination, sorting, search, and `status`, `companyId`, and `priority` filters. |
+| `/jobs/{id}/match` | Recalculate skill/profile match, return matched/missing skills and a recommended resume, and save the match score. |
+| `/jobs/top?limit=10` | Return top ranked jobs with score factors and resume recommendations. |
+| `/resumes/{resumeId}/skills` | List or replace manually maintained resume skills. |
 | `/dashboard` | Dashboard counts and summaries. |
 | `/assistant/opportunities` | Filtered opportunities and recommendations. |
 | `/assistant/messages/generate` | Generate and save message drafts. |
@@ -126,9 +133,11 @@ All API routes are under `/api/v1`. Authenticated CRM data is scoped to the sign
 | `/assistant/resume-recommendation` | Recommend saved resume metadata for a contact and role. |
 | `/assistant/analytics` | Networking metrics and performance summaries. |
 | `/assistant/profile` | Read and update the profile summary used in drafts. |
-| `/search?q=...` | Global search across CRM records, notes, and saved messages. |
+| `/search?q=...` | Global search across CRM records, jobs and required skills, notes, and saved messages. |
 
-List endpoints support `page` (zero-based), `size` (up to 100), `sort`, and `direction` (`asc` or `desc`) where applicable. Contact statuses are `NOT_CONTACTED`, `MESSAGE_READY`, `CONTACTED`, `REPLIED`, `REFERRED`, `INTERVIEW`, `REJECTED`, and `NO_RESPONSE`. Outreach channels are `LINKEDIN`, `EMAIL`, `REFERRAL_PORTAL`, and `OTHER`.
+Job statuses are `FOUND`, `INTERESTED`, `REFERRAL_REQUIRED`, `APPLIED`, `OA`, `INTERVIEW`, `OFFER`, and `REJECTED`; priorities are `LOW`, `MEDIUM`, `HIGH`, and `DREAM`. The jobs list accepts `search`, `status`, `companyId`, and `priority` alongside pagination/sorting. Resume skills can be entered through the Jobs page or `/resumes/{resumeId}/skills`. Contact statuses are `NOT_CONTACTED`, `MESSAGE_READY`, `CONTACTED`, `REPLIED`, `REFERRED`, `INTERVIEW`, `REJECTED`, and `NO_RESPONSE`. Outreach channels are `LINKEDIN`, `EMAIL`, `REFERRAL_PORTAL`, and `OTHER`.
+
+List endpoints support `page` (zero-based), `size` (up to 100), `sort`, and `direction` (`asc` or `desc`) where applicable.
 
 ## Development checks
 
@@ -143,4 +152,4 @@ npm run build
 
 ## Project status
 
-Phase 1 established the database, authentication, and CRM APIs. Phase 2 added the dashboard and web application. Phase 3 added the networking assistant, opportunity and review queues, recommendations, versioned prompts, and analytics. Resume file uploads, job-description analysis, export to Excel/CSV/PDF, a dedicated interview UI, drag-and-drop Kanban, and actual external provider integrations are future work. Automated LinkedIn activity and scraping are explicitly out of scope.
+Phase 1 established the database, authentication, and CRM APIs. Phase 2 added the dashboard and web application. Phase 3 added the networking assistant, opportunity and review queues, recommendations, versioned prompts, and analytics. Phase 4 adds job tracking, deterministic skill/profile matching, resume skill records, weighted opportunity ranking, and job dashboard statistics. Job listings and profile/resume skills are entered manually; job imports and provider integrations are interfaces only. Resume binary uploads, document-content parsing, external job discovery, job-description analysis by an LLM, export to Excel/CSV/PDF, a dedicated interview UI, and drag-and-drop Kanban remain future work. Automated LinkedIn activity, scraping, browser automation, and auto applications are explicitly out of scope.

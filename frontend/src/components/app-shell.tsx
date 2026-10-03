@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, BarChart3, Building2, ChevronDown, Command, FileText, Inbox, LayoutDashboard, LogOut, Menu, Moon, Search, Sun, UsersRound, WandSparkles, X } from "lucide-react";
+import { ArrowUpRight, BarChart3, BriefcaseBusiness, Building2, ChevronDown, Command, FileText, Inbox, LayoutDashboard, LogOut, Menu, Moon, Search, Sun, UsersRound, WandSparkles, X } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { initials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ const navigation = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/contacts", label: "Contacts", icon: UsersRound },
   { href: "/companies", label: "Companies", icon: Building2 },
+  { href: "/jobs", label: "Job opportunities", icon: BriefcaseBusiness },
   { href: "/opportunities", label: "Opportunities", icon: WandSparkles },
   { href: "/review", label: "Review queue", icon: Inbox },
   { href: "/networking-analytics", label: "Networking analytics", icon: BarChart3 },

@@ -30,6 +30,11 @@ public interface OutreachRepository extends JpaRepository<Outreach, UUID>, JpaSp
      SELECT 'MESSAGE', gm.id, c.name || ' · ' || gm.variant || ' v' || gm.version, gm.status, gm.message_text
      FROM generated_messages gm JOIN contacts c ON c.id=gm.contact_id AND c.deleted_at IS NULL
      WHERE gm.user_id=:userId AND gm.deleted_at IS NULL AND gm.message_text ILIKE '%' || :term || '%'
+     UNION ALL
+     SELECT 'JOB', j.id, j.title, COALESCE(co.name,'') || CASE WHEN j.location IS NOT NULL THEN ' · ' || j.location ELSE '' END, COALESCE(j.description,'')
+     FROM job_opportunities j LEFT JOIN companies co ON co.id=j.company_id AND co.deleted_at IS NULL
+     WHERE j.user_id=:userId AND j.deleted_at IS NULL AND
+       (j.title ILIKE '%' || :term || '%' OR j.description ILIKE '%' || :term || '%' OR COALESCE(j.location,'') ILIKE '%' || :term || '%' OR EXISTS (SELECT 1 FROM job_skills js WHERE js.job_id=j.id AND js.skill ILIKE '%' || :term || '%'))
    ) results ORDER BY kind, title LIMIT 60
    """, nativeQuery=true)
  List<SearchRecord> searchAll(@Param("userId") UUID userId, @Param("term") String term);

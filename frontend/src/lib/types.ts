@@ -60,7 +60,18 @@ export type DashboardData = {
   referralRate: number;
   followUps: Array<{ id: string; name: string; designation: string | null; companyName: string | null; lastSentAt: string }>;
   companies: Array<{ id: string; name: string; contactCount: number; outreachCount: number; referralCount: number }>;
+  jobs: JobSummary;
 };
+export type JobStatus = "FOUND" | "INTERESTED" | "REFERRAL_REQUIRED" | "APPLIED" | "OA" | "INTERVIEW" | "OFFER" | "REJECTED";
+export type JobPriority = "LOW" | "MEDIUM" | "HIGH" | "DREAM";
+export type JobOpportunity = {
+  id: string; companyId: string; title: string; description: string; location: string | null; employmentType: string | null;
+  experienceLevel: string | null; source: string | null; careerUrl: string | null; salaryRange: string | null; skills: string[];
+  status: JobStatus; priority: JobPriority; matchScore: number; createdAt: string; updatedAt: string;
+};
+export type JobMatch = { score: number; matchingSkills: string[]; missingSkills: string[]; recommendation: string; recommendedResumeId: string | null; recommendedResume: string | null; resumeReason: string };
+export type RankedJob = { id: string; title: string; companyId: string; companyName: string | null; location: string | null; status: JobStatus; priority: JobPriority; matchScore: number; rankingScore: number; reasons: string[]; recommendedResumeId: string | null; recommendedResume: string | null };
+export type JobSummary = { jobsFound: number; interestedJobs: number; applications: number; interviews: number; offers: number; averageMatchScore: number; topMatchingJobs: RankedJob[] };
 
 export type AssistantContact = {
   id: string; name: string; designation: string | null; companyId: string | null; companyName: string | null;
