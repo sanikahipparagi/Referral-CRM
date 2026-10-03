@@ -26,7 +26,7 @@ public class AuthController {
         AppUser u=new AppUser(); u.setEmail(email); u.setFullName(r.fullName().trim()); u.setPasswordHash(encoder.encode(r.password())); users.save(u); return token(u);
     }
     @PostMapping("/login") public Map<String,Object> login(@Valid @RequestBody LoginRequest r) {
-        AppUser u=users.findByEmailAndDeletedAtIsNull(r.email().trim().toLowerCase(Locale.ROOT)).orElseThrow(BadCredentialsException::new);
+        AppUser u=users.findByEmailAndDeletedAtIsNull(r.email().trim().toLowerCase(Locale.ROOT)).orElseThrow(() -> new BadCredentialsException("Email or password is incorrect"));
         if(!encoder.matches(r.password(),u.getPasswordHash())) throw new BadCredentialsException("Invalid credentials"); return token(u);
     }
     private Map<String,Object> token(AppUser u) { return Map.of("accessToken",jwt.issue(u.getId(),u.getEmail()),"tokenType","Bearer","expiresInSeconds",jwt.expirationSeconds(),"user",Map.of("id",u.getId(),"email",u.getEmail(),"fullName",u.getFullName())); }
