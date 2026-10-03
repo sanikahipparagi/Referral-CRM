@@ -15,7 +15,7 @@ public interface CompanyRepository extends JpaRepository<Company, UUID>, JpaSpec
    FROM companies co LEFT JOIN contacts c ON c.company_id = co.id AND c.deleted_at IS NULL
    LEFT JOIN outreach o ON o.contact_id = c.id AND o.deleted_at IS NULL
    WHERE co.user_id = :userId AND co.deleted_at IS NULL
-   GROUP BY co.id, co.name ORDER BY outreachCount DESC, contactCount DESC, co.name ASC LIMIT 8
+   GROUP BY co.id, co.name ORDER BY "outreachCount" DESC, "contactCount" DESC, co.name ASC LIMIT 8
    """, nativeQuery=true)
  List<CompanyStats> dashboardStats(@Param("userId") UUID userId);
 }
